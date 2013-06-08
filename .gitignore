@@ -1,0 +1,5 @@
+# Build folders.
+build/build_clang
+build/build_clang_analyzer
+build/build_gcc
+build/build_mingw32
