@@ -2,6 +2,7 @@
 
 #include <cassert>
 
+#include <osdep.h>
 #include <hvdframe.h>
 
 VidPlayer::VidPlayer(HVDFrame::HVDFrame *in_hvdframe, ICutils::DataSync<ICv::CVShm> *in_fmem)
@@ -21,7 +22,7 @@ void VidPlayer::th_worker(void)
 
 	while (run_flag) {
 		cv::Mat frame;
-		usleep(1000000 / fps);
+		OSDep::msleep(1000 / fps);
 		fmem->GetData(framebuf);
 
 		if (!framebuf.GetValid())

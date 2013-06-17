@@ -1,6 +1,8 @@
 #include <cstring>
 #include <errno.h>
 
+#include <osdep.h>
+
 #include "sem.h"
 
 namespace ICutils {
@@ -56,7 +58,7 @@ bool Semaphore::TimedWait(unsigned long to_msecs)
 
 	memset(&ts_to, 0, sizeof(ts_to));
 
-	clock_gettime(CLOCK_REALTIME, &ts_to);
+	OSDep::gettime(&ts_to);
 	if (ts_to.tv_nsec + to_nsecs >= 1000000000) {
 		ts_to.tv_sec += 1;
 		to_nsecs -= 1000000000;

@@ -1,6 +1,8 @@
 #include "icv.h"
 #include <cstdio>
 
+#include <osdep.h>
+
 namespace ICv {
 
 VidReader::VidReader(ICutils::DataSync<ICv::CVShm> *in_fmem)
@@ -40,8 +42,7 @@ void VidReader::th_worker(void)
 		fmem->Signal();
 
 		/* Obey frame rate. */
-		/* FIXME: osdep */
-		usleep(1000000 / fps);
+		OSDep::msleep(1000 / fps);
 	}
 
 	if (run_flag) {

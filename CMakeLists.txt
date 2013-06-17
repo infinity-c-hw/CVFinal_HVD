@@ -29,12 +29,14 @@ set(CMAKE_CXX_FLAGS "-Wall")
 # configure include paths
 include_directories(lib/icv)
 include_directories(lib/icutils)
+include_directories(lib/osdep)
 include_directories(gui)
 include_directories(src/hvdgui)
 
 # compile libraries
 add_subdirectory(lib/icv)
 add_subdirectory(lib/icutils)
+add_subdirectory(lib/osdep)
 
 # compile main binary
 unset(src)
@@ -48,7 +50,8 @@ set(src ${src} src/hvdmain/vidprocessor.cpp)
 set(src ${src} src/hvdmain/vidplayer.cpp)
 
 add_executable(hvd ${src})
-target_link_libraries(hvd ${wxWidgets_LIBRARIES} ${OpenCV_LIBS} icv icutils)
+target_link_libraries(hvd ${wxWidgets_LIBRARIES} ${OpenCV_LIBS} icv icutils
+	osdep)
 
 # setup icons
 list(APPEND icon_set "ico_tool_camera.png")
