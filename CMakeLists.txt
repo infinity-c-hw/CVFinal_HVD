@@ -4,10 +4,10 @@ project(cvfinal_hd)
 # configure library path
 if(WIN32)
 	# point to your wxWidgets root directory
-	set(wxWidgets_ROOT_DIR "C:\DevUtils\Libs\wxWidgets")
+	set(wxWidgets_ROOT_DIR "C:/DevUtils/Libs/wxWidgets")
 
-	# FIXME: untested
-	#set(OpenCV_DIR "C:\DevUtils\Libs\opencv")
+	# point to your OpenCV root directory
+	set(OpenCV_DIR "C:/DevUtils/Libs/opencv")
 endif(WIN32)
 
 # configure wxWidgets
@@ -61,16 +61,10 @@ list(APPEND icon_set "ico_log_pending.png")
 set(ICON_OUT "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}")
 set(ICON_SRC "${CMAKE_SOURCE_DIR}/gui/resources")
 
-if(UNIX)
-	set(CP cp)
-elseif(WIN32)
-	set(CP copy)
-endif(UNIX)
-
 foreach(icon IN LISTS icon_set)
 	add_custom_command(
 		OUTPUT ${ICON_OUT}/${icon}
-		COMMAND ${CP} ${ICON_SRC}/${icon} ${ICON_OUT}/${icon}
+		COMMAND ${CMAKE_COMMAND} -E copy ${ICON_SRC}/${icon} ${ICON_OUT}/${icon}
 		DEPENDS ${ICON_SRC}/${icon}
 	)
 	add_custom_target(
