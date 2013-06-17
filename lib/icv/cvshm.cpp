@@ -5,6 +5,7 @@ namespace ICv {
 CVShm::CVShm(void)
 {
 	valid = false;
+	end_of_stream = false;
 }
 
 CVShm::~CVShm(void)
