@@ -157,10 +157,8 @@ void wxCvPanel::update_frame_info(void)
 
 void wxCvPanel::render(wxDC &dc)
 {
-	wxBitmap f_bitmap;
-
 	update_frame_info();
-	f_bitmap = cf.wx_img.Scale(cf.image_width * cf.scale, cf.image_height * cf.scale);
+	wxBitmap f_bitmap(cf.wx_img.Scale(cf.image_width * cf.scale, cf.image_height * cf.scale));
 	dc.DrawBitmap(f_bitmap, wxPoint(cf.lt_x, cf.lt_y), false);
 }
 
