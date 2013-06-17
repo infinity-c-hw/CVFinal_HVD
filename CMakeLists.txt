@@ -15,7 +15,7 @@ find_package(wxWidgets COMPONENTS core base REQUIRED)
 include(${wxWidgets_USE_FILE})
 
 # configure OpenCV
-find_package(OpenCV REQUIRED)
+find_package(OpenCV COMPONENTS core imgproc highgui REQUIRED)
 
 # specify output directory
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
@@ -51,7 +51,7 @@ set(src ${src} src/hvdmain/vidplayer.cpp)
 
 add_executable(hvd ${src})
 target_link_libraries(hvd ${wxWidgets_LIBRARIES} ${OpenCV_LIBS} icv icutils
-	osdep)
+	osdep pthread)
 
 # setup icons
 list(APPEND icon_set "ico_tool_camera.png")

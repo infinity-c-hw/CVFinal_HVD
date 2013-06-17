@@ -7,3 +7,4 @@ set(src ${src} vidreader.cpp)
 set(src ${src} cvshm.cpp)
 
 add_library(icv ${src})
+target_link_libraries(icv ${OpenCV_LIBS})
