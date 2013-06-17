@@ -59,7 +59,7 @@ wxDECLARE_EVENT(wxEVT_CV_DRAW, wxCvDrawEvent);
  */
 class HVDFrame : public HVDUI::HVDFrameBase {
 	private:
-		friend class HVDApp;
+		friend class ::HVDApp;
 
 		/** @brief Flag to ignore wxEVT_CV_DRAW.
 		 *
