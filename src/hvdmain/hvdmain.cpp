@@ -106,10 +106,17 @@ void hvdmain_cleanup(void **data)
 bool hvdmain_open_video(void *data, const std::string &fname)
 {
 	struct hvdmain *hm = (struct hvdmain *)data;
+	ICv::CVShm framebuf;
 
 	hm->vc->Stop();
 	hm->vr->Stop();
 	hm->vp->Stop();
+
+	/* Reset shared frame data.
+	 * This is necessary because end-of-stream might be set on previous
+	 * playback, and it will cause VidProcessor to get the old state and stop
+	 * at the moment it starts. */
+	hm->fmem_vr->SetData(framebuf);
 
 	if (!hm->vr->Open(fname)) {
 		wxString msg;
