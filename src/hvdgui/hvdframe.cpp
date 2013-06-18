@@ -11,23 +11,86 @@
 
 namespace HVDFrame {
 
-wxCvDrawEvent::wxCvDrawEvent(wxEventType eventType, int winid, const cv::Mat &img, ICutils::Semaphore *in_evtsync)
+InstTracker::InstTracker(void)
+{
+	inst_count = 1;
+	pthread_mutex_init(&m, NULL);
+}
+
+InstTracker::~InstTracker(void)
+{
+	pthread_mutex_destroy(&m);
+}
+
+int InstTracker::Increase(void)
+{
+	int val = 0;
+	pthread_mutex_lock(&m);
+	inst_count++;
+	val = inst_count;
+	pthread_mutex_unlock(&m);
+	return val;
+}
+
+int InstTracker::Decrease(void)
+{
+	int val = 0;
+	pthread_mutex_lock(&m);
+	inst_count--;
+	val = inst_count;
+	pthread_mutex_unlock(&m);
+	return val;
+}
+
+int InstTracker::Get(void)
+{
+	int val = 0;
+	pthread_mutex_lock(&m);
+	val = inst_count;
+	pthread_mutex_unlock(&m);
+	return val;
+}
+
+wxCvDrawEvent::wxCvDrawEvent(wxEventType eventType, int winid, const cv::Mat &img)
 	: wxEvent(winid, eventType)
 {
+	evtsync = new ICutils::Semaphore(0, 1);
+	tracker = new InstTracker;
+
 	frame = img.clone();
-	evtsync = in_evtsync;
 	realevt = false;
 }
 
 wxCvDrawEvent::~wxCvDrawEvent(void)
 {
+	/* The cloned instance should notify event process completion through
+	 * semaphore. */
 	if (realevt)
 		evtsync->Post();
+
+	/* The last instance is responsible for deleting dynamically allocated fields. */
+	if (tracker->Decrease() == 0) {
+		delete evtsync;
+		delete tracker;
+	}
+}
+
+wxEvent *wxCvDrawEvent::Clone(void) const
+{
+	wxCvDrawEvent *cloneptr = new wxCvDrawEvent(*this);
+	cloneptr->realevt = true;
+	cloneptr->tracker->Increase();
+	return cloneptr;
 }
 
 void wxCvDrawEvent::GetFrame(cv::Mat &img) const
 {
 	img = frame;
+}
+
+bool wxCvDrawEvent::WaitEventHandle(unsigned long msecs)
+{
+	return evtsync->TimedWait(msecs);
 }
 
 wxDEFINE_EVENT(wxEVT_CV_DRAW, wxCvDrawEvent);
@@ -38,8 +101,6 @@ HVDFrame::HVDFrame(wxWindow *parent)
 	: HVDFrameBase(parent)
 {
 	this->Connect(wxEVT_CV_DRAW, wxCvDrawEventHandler(HVDFrame::OnCvDraw));
-
-	ignore_cv_draw_evt = false;
 }
 
 HVDFrame::~HVDFrame(void)
@@ -47,23 +108,11 @@ HVDFrame::~HVDFrame(void)
 	this->Disconnect(wxEVT_CV_DRAW, wxCvDrawEventHandler(HVDFrame::OnCvDraw));
 }
 
-void HVDFrame::prepare_core(void)
-{
-	ignore_cv_draw_evt = true;
-	DeletePendingEvents();
-}
-
-void HVDFrame::post_core(void)
-{
-	ignore_cv_draw_evt = false;
-}
-
 void HVDFrame::OnQuit(wxCloseEvent &event)
 {
 	/* Call core cleanup routine.
 	 * There's no need to restore event processing as we're shutting down the
 	 * program anyway. */
-	prepare_core();
 	hvdmain_cleanup(&core_data);
 
 	Destroy();
@@ -80,9 +129,7 @@ void HVDFrame::OnToolOpenVideo(wxCommandEvent &event)
 	if (fname.empty())
 		return;
 
-	prepare_core();
 	hvdmain_open_video(core_data, fname.ToStdString());
-	post_core();
 }
 
 void HVDFrame::OnToolOpenCamera(wxCommandEvent &event)
@@ -94,9 +141,7 @@ void HVDFrame::OnToolOpenCamera(wxCommandEvent &event)
 	if (cam_index == -1)
 		return;
 
-	prepare_core();
 	hvdmain_open_camera(core_data, cam_index);
-	post_core();
 }
 
 void HVDFrame::OnToolOpenImage(wxCommandEvent &event)
@@ -105,9 +150,7 @@ void HVDFrame::OnToolOpenImage(wxCommandEvent &event)
 	if (fname.empty())
 		return;
 
-	prepare_core();
 	hvdmain_open_image(core_data, fname.ToStdString());
-	post_core();
 }
 
 void HVDFrame::OnCvDraw(wxCvDrawEvent &event)
@@ -190,17 +233,13 @@ wxCvPanel *HVDFrame::GetCvPanel(void)
 
 void HVDFrame::SendCvDrawEvent(cv::Mat &img)
 {
-	if (ignore_cv_draw_evt)
-		return;
-
-	ICutils::Semaphore sem(0, 1);
-	wxCvDrawEvent event(wxEVT_CV_DRAW, GetId(), img, &sem);
+	wxCvDrawEvent event(wxEVT_CV_DRAW, GetId(), img);
 
 	event.SetEventObject(this);
 	AddPendingEvent(event);
 
 	/* Wait for event to be processed. */
-	sem.Wait();
+	event.WaitEventHandle(1000);
 }
 
 } /* namespace HVDFrame */

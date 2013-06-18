@@ -15,6 +15,27 @@
  */
 namespace HVDFrame {
 
+/** @brief A simple instance count tracker for wxCvDrawEvent.
+ *
+ * It is essentially a mutex lock protected integer data type.
+ *
+ * After construction, the counter will be one.  The return value of Increase
+ * and Decrease is the value after counter change.
+ */
+class InstTracker {
+	private:
+		int inst_count; /**< Counter. */
+		pthread_mutex_t m; /**< Mutex lock. */
+
+	public:
+		InstTracker(void); /**< Constructor. */
+		~InstTracker(void); /**< Destructor. */
+
+		int Increase(void); /**< Increase counter and return the new counter value. */
+		int Decrease(void); /**< Decrease counter and return the new counter value. */
+		int Get(void); /**< Get current counter value. */
+};
+
 /** @brief Drawing event that propagates image frame.
  *
  * FIXME:
@@ -24,7 +45,8 @@ namespace HVDFrame {
  * processing, the incoming video frame will pour in too fast that main
  * program does not have the ability to digest the events.  So we need some
  * sort of synchronization between event issuer and event dispatcher, thus
- * the evtsync and realevt member.
+ * the evtsync, realevt, and tracker member.
+ *
  * Basically it work on the assumption that a cloned copy of event object
  * will be queued into event queue.  When the copy in the event queue got
  * released, the event has been processed.  So we set a flag on cloned
@@ -32,25 +54,34 @@ namespace HVDFrame {
  * processed, and it will wake up the event issuer.  In this way, we always
  * guarantee the event is completed before the next comes in, but the
  * assumption can be broken easily if the library behavior changes.
+ *
+ * The tracker member is used to track instance count.  Because the cloned
+ * instance shares semaphore object, we need to consider two cases:
+ *
+ * 1. Object is deleted by the original instance.  This will happen if the
+ * 		event is processed before semaphore timed out.
+ * 2. Object is deleted by the cloned instance.  This will happen if time out
+ * 		happens before event processing.
+ *
+ * In short, tracker is a reference counter for evtsync member.  If reference
+ * counter drops to 0, the destructor is responsible for destroying all
+ * dynamically allocated members.
  */
 class wxCvDrawEvent : public wxEvent {
 	private:
-		cv::Mat frame;
-		ICutils::Semaphore *evtsync; /**< semaphore to synchronize event completion */
-		bool realevt; /**< flag to indicate cloned instance, see class comment */
+		cv::Mat frame; /**< Frame to be propagated. */
+		bool realevt; /**< Flag to indicate cloned instance, see class comment. */
+		ICutils::Semaphore *evtsync; /**< Semaphore to synchronize event completion. */
+		InstTracker *tracker; /**< Instance tracker. */
 
 	public:
-		wxCvDrawEvent(wxEventType eventType, int winid, const cv::Mat &img, ICutils::Semaphore *in_evtsync);
+		wxCvDrawEvent(wxEventType eventType, int winid, const cv::Mat &img);
 		~wxCvDrawEvent(void);
 
 		void GetFrame(cv::Mat &img) const;
+		bool WaitEventHandle(unsigned long msecs);
 
-		virtual wxEvent *Clone(void) const
-		{
-			wxCvDrawEvent *cloneptr = new wxCvDrawEvent(*this);
-			cloneptr->realevt = true;
-			return cloneptr;
-		}
+		virtual wxEvent *Clone(void) const;
 };
 
 wxDECLARE_EVENT(wxEVT_CV_DRAW, wxCvDrawEvent);
@@ -61,42 +92,11 @@ class HVDFrame : public HVDUI::HVDFrameBase {
 	private:
 		friend class ::HVDApp;
 
-		/** @brief Flag to ignore wxEVT_CV_DRAW.
-		 *
-		 * If this attribute is set, SendCvDrawEvent() will refuse to queue
-		 * new event into event queue.
-		 *
-		 * This is essential, because if hvd core calls into functions that
-		 * waits for drawing completion when some drawing event is still in
-		 * event queue, it results in deadlock becuase we're unable to
-		 * process event, thus unable to sem.Post() event object.
-		 *
-		 * So here we take a take a not-so-good but workingapproach.  That is,
-		 * whenever calling into hvd call, we invalidate drawing event
-		 * temporarily and delete all pending events, so we can prevent such
-		 * deadlock.
-		 *
-		 * This attribute is managed by prepare_core() and post_core() methods.
-		 */
-		bool ignore_cv_draw_evt;
-
 		/** @brief Core data pointer.
 		 *
 		 * Will be passed into each core implementation call.
 		 */
 		void *core_data;
-
-		/** @brief Prepare hvd core call.
-		 *
-		 * Sets ignore_cv_draw_evt and clear event queue.
-		 */
-		void prepare_core(void);
-
-		/** @brief Post hvd core call.
-		 *
-		 * Restart draw event processing.
-		 */
-		void post_core(void);
 
 		/** @brief Application quit event handler.
 		 */
