@@ -1,5 +1,4 @@
 #include "icv.h"
-#include <cstdio>
 
 #include <osdep.h>
 
