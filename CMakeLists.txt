@@ -11,7 +11,7 @@ if(WIN32)
 endif(WIN32)
 
 # configure wxWidgets
-find_package(wxWidgets COMPONENTS core base REQUIRED)
+find_package(wxWidgets COMPONENTS core base adv REQUIRED)
 include(${wxWidgets_USE_FILE})
 
 # configure OpenCV

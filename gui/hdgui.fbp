@@ -183,7 +183,7 @@
                         <property name="permission">none</property>
                         <property name="shortcut"></property>
                         <property name="unchecked_bitmap"></property>
-                        <event name="OnMenuSelection"></event>
+                        <event name="OnMenuSelection">OnMenuAbout</event>
                         <event name="OnUpdateUI"></event>
                     </object>
                 </object>

@@ -1,5 +1,5 @@
 ///////////////////////////////////////////////////////////////////////////
-// C++ code generated with wxFormBuilder (version Jun  1 2012)
+// C++ code generated with wxFormBuilder (version May 12 2013)
 // http://www.wxformbuilder.org/
 //
 // PLEASE DO "NOT" EDIT THIS FILE!
@@ -101,6 +101,7 @@ HVDFrameBase::HVDFrameBase( wxWindow* parent, wxWindowID id, const wxString& tit
 	// Connect Events
 	this->Connect( wxEVT_CLOSE_WINDOW, wxCloseEventHandler( HVDFrameBase::OnQuit ) );
 	this->Connect( menu_program_exit->GetId(), wxEVT_COMMAND_MENU_SELECTED, wxCommandEventHandler( HVDFrameBase::OnMenuExit ) );
+	this->Connect( menu_help_about->GetId(), wxEVT_COMMAND_MENU_SELECTED, wxCommandEventHandler( HVDFrameBase::OnMenuAbout ) );
 	this->Connect( BTN_OPEN_VIDEO, wxEVT_COMMAND_TOOL_CLICKED, wxCommandEventHandler( HVDFrameBase::OnToolOpenVideo ) );
 	this->Connect( BTN_OPEN_CAMERA, wxEVT_COMMAND_TOOL_CLICKED, wxCommandEventHandler( HVDFrameBase::OnToolOpenCamera ) );
 	this->Connect( BTN_OPEN_IMAGE, wxEVT_COMMAND_TOOL_CLICKED, wxCommandEventHandler( HVDFrameBase::OnToolOpenImage ) );
@@ -111,6 +112,7 @@ HVDFrameBase::~HVDFrameBase()
 	// Disconnect Events
 	this->Disconnect( wxEVT_CLOSE_WINDOW, wxCloseEventHandler( HVDFrameBase::OnQuit ) );
 	this->Disconnect( wxID_ANY, wxEVT_COMMAND_MENU_SELECTED, wxCommandEventHandler( HVDFrameBase::OnMenuExit ) );
+	this->Disconnect( wxID_ANY, wxEVT_COMMAND_MENU_SELECTED, wxCommandEventHandler( HVDFrameBase::OnMenuAbout ) );
 	this->Disconnect( BTN_OPEN_VIDEO, wxEVT_COMMAND_TOOL_CLICKED, wxCommandEventHandler( HVDFrameBase::OnToolOpenVideo ) );
 	this->Disconnect( BTN_OPEN_CAMERA, wxEVT_COMMAND_TOOL_CLICKED, wxCommandEventHandler( HVDFrameBase::OnToolOpenCamera ) );
 	this->Disconnect( BTN_OPEN_IMAGE, wxEVT_COMMAND_TOOL_CLICKED, wxCommandEventHandler( HVDFrameBase::OnToolOpenImage ) );

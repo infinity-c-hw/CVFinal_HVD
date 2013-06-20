@@ -5,6 +5,7 @@
 #include <wx/filedlg.h>
 #include <wx/msgdlg.h>
 #include <wx/numdlg.h>
+#include <wx/aboutdlg.h>
 #include <opencv2/highgui/highgui.hpp>
 #include <opencv2/imgproc/imgproc.hpp>
 
@@ -121,6 +122,17 @@ void HVDFrame::OnQuit(wxCloseEvent &event)
 void HVDFrame::OnMenuExit(wxCommandEvent &event)
 {
 	Close(true);
+}
+
+void HVDFrame::OnMenuAbout(wxCommandEvent &event)
+{
+	wxAboutDialogInfo info;
+	info.SetName(wxT("HVD"));
+	info.SetVersion(wxT("Preview"));
+	info.SetDescription(wxT("HVD indicates Handicapped Vehicle Detection, but it does\n"
+								"little thing, and has many bugs."));
+
+	wxAboutBox(info, this);
 }
 
 void HVDFrame::OnToolOpenVideo(wxCommandEvent &event)

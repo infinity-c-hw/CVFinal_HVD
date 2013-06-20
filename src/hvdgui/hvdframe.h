@@ -106,6 +106,10 @@ class HVDFrame : public HVDUI::HVDFrameBase {
 		 */
 		void OnMenuExit(wxCommandEvent &event);
 
+		/** @brief Menu about selection event handler.
+		 */
+		void OnMenuAbout(wxCommandEvent &event);
+
 		/** @brief Open video button event handler.
 		 */
 		void OnToolOpenVideo(wxCommandEvent &event);

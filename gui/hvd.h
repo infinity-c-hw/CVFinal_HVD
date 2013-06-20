@@ -1,5 +1,5 @@
 ///////////////////////////////////////////////////////////////////////////
-// C++ code generated with wxFormBuilder (version Jun  1 2012)
+// C++ code generated with wxFormBuilder (version May 12 2013)
 // http://www.wxformbuilder.org/
 //
 // PLEASE DO "NOT" EDIT THIS FILE!
@@ -61,6 +61,7 @@ namespace HVDUI
 			// Virtual event handlers, overide them in your derived class
 			virtual void OnQuit( wxCloseEvent& event ) { event.Skip(); }
 			virtual void OnMenuExit( wxCommandEvent& event ) { event.Skip(); }
+			virtual void OnMenuAbout( wxCommandEvent& event ) { event.Skip(); }
 			virtual void OnToolOpenVideo( wxCommandEvent& event ) { event.Skip(); }
 			virtual void OnToolOpenCamera( wxCommandEvent& event ) { event.Skip(); }
 			virtual void OnToolOpenImage( wxCommandEvent& event ) { event.Skip(); }
