@@ -158,10 +158,52 @@ bool hvdmain_open_video(void *data, const std::string &fname)
 
 bool hvdmain_open_camera(void *data, const int dev_no)
 {
-	/* TODO: As in the warning message. */
-	HVDLogger::LogWarning("Opening camera is not implemented yet.");
-	HVDLogger::LogWarning("Camera: %d", dev_no);
-	return false;
+	struct hvdmain *hm = (struct hvdmain *)data;
+	ICv::CVShm framebuf;
+
+	hm->vc->Stop();
+	hm->vr->Stop();
+	hm->vp->Stop();
+
+	/* Reset shared frame data. */
+	hm->fmem_vr->SetData(framebuf);
+
+	if (!hm->vr->Open(dev_no)) {
+		wxString msg;
+		msg.Printf("Cannot start camera \"%d\".", dev_no);
+		HVDLogger::LogError(msg.mb_str());
+		wxMessageBox(msg, wxT("Error"), wxOK);
+		return false;
+	}
+
+	if (!hm->vr->Start()) {
+		wxString msg;
+		msg.Printf("Cannot start video reader.");
+		HVDLogger::LogError(msg.mb_str());
+		wxMessageBox(msg, wxT("Error"), wxOK);
+		return false;
+	}
+
+	if (!hm->vc->Start()) {
+		wxString msg;
+		msg.Printf("Cannot start video processor.");
+		HVDLogger::LogError(msg.mb_str());
+		wxMessageBox(msg, wxT("Error"), wxOK);
+		return false;
+	}
+
+	/* Set video player FPS. */
+	hm->vp->SetFPS(hm->vr->GetFPS());
+
+	if (!hm->vp->Start()) {
+		wxString msg;
+		msg.Printf("Cannot start video player.");
+		HVDLogger::LogError(msg.mb_str());
+		wxMessageBox(msg, wxT("Error"), wxOK);
+		return false;
+	}
+
+	return true;
 }
 
 bool hvdmain_open_image(void *data, const std::string &fname)
