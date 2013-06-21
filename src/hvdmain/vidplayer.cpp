@@ -31,9 +31,6 @@ void VidPlayer::th_worker(void)
 		framebuf.GetImg(frame);
 		hvdframe->SendCvDrawEvent(frame);
 	}
-
-	if (run_flag)
-		run_flag = false;
 }
 
 void VidPlayer::SetFPS(double fps_set)

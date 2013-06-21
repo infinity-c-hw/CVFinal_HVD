@@ -23,16 +23,11 @@ void VidProcessor::th_worker(void)
 		fmem_vr->GetData(framebuf);
 
 		if (framebuf.GetEndOfStream())
-			break;
+			run_flag = false;
 		if (!framebuf.GetValid())
 			continue;
 
 		/* TODO: call into detection core */
-		fmem_vp->SetData(framebuf);
-	}
-
-	if (run_flag && framebuf.GetEndOfStream()) {
-		run_flag = false;
 		fmem_vp->SetData(framebuf);
 	}
 }

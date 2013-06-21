@@ -34,22 +34,17 @@ void VidReader::th_worker(void)
 	while (run_flag) {
 		cv::Mat frame;
 
-		if (!cap.read(frame))
-			break;
+		if (!cap.read(frame)) {
+			run_flag = false;
+			framebuf.SetEndOfStream(true);
+		}
+
 		framebuf.SetImg(frame);
 		fmem->SetData(framebuf);
 		fmem->Signal();
 
 		/* Obey frame rate. */
 		OSDep::msleep(1000 / fps);
-	}
-
-	if (run_flag) {
-		/* Not interrupted by parent thread.  Video stream ends. */
-		run_flag = false;
-		framebuf.SetEndOfStream(true);
-		fmem->SetData(framebuf);
-		fmem->Signal();
 	}
 }
 
