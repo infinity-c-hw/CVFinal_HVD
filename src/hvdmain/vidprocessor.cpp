@@ -1,4 +1,5 @@
 #include "vidprocessor.h"
+#include "detcore.h"
 
 #include <opencv2/imgproc/imgproc.hpp>
 
@@ -16,6 +17,7 @@ VidProcessor::~VidProcessor(void)
 void VidProcessor::th_worker(void)
 {
 	ICv::CVShm framebuf;
+	cv::Mat frame;
 
 	while (run_flag) {
 		if (!fmem_vr->TimedWait(2000))
@@ -27,7 +29,10 @@ void VidProcessor::th_worker(void)
 		if (!framebuf.GetValid())
 			continue;
 
-		/* TODO: call into detection core */
+		/* Call into detection core */
+		framebuf.GetImg(frame);
+		detection_core(frame);
+		framebuf.SetImg(frame);
 		fmem_vp->SetData(framebuf);
 	}
 }

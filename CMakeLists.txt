@@ -15,7 +15,7 @@ find_package(wxWidgets COMPONENTS core base adv REQUIRED)
 include(${wxWidgets_USE_FILE})
 
 # configure OpenCV
-find_package(OpenCV COMPONENTS core imgproc highgui REQUIRED)
+find_package(OpenCV COMPONENTS core imgproc highgui features2d nonfree REQUIRED)
 
 # specify output directory
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
@@ -48,6 +48,7 @@ set(src ${src} src/hvdgui/hvdapp.cpp)
 set(src ${src} src/hvdmain/hvdmain.cpp)
 set(src ${src} src/hvdmain/vidprocessor.cpp)
 set(src ${src} src/hvdmain/vidplayer.cpp)
+set(src ${src} src/hvdmain/detcore.cpp)
 
 add_executable(hvd ${src})
 target_link_libraries(hvd ${wxWidgets_LIBRARIES} ${OpenCV_LIBS} icv icutils
