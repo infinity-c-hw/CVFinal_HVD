@@ -52,61 +52,85 @@ int InstTracker::Get(void)
 	return val;
 }
 
-wxCvDrawEvent::wxCvDrawEvent(wxEventType eventType, int winid, const cv::Mat &img)
+HVDEvent::HVDEvent(wxEventType eventType, int winid)
 	: wxEvent(winid, eventType)
 {
-	evtsync = new ICutils::Semaphore(0, 1);
-	tracker = new InstTracker;
+	shared = new HVDEventShared;
 
-	frame = img.clone();
+	evttype = eventType;
 	realevt = false;
 }
 
-wxCvDrawEvent::~wxCvDrawEvent(void)
+HVDEvent::~HVDEvent(void)
 {
 	/* The cloned instance should notify event process completion through
 	 * semaphore. */
 	if (realevt)
-		evtsync->Post();
+		shared->evtsync.Post();
 
 	/* The last instance is responsible for deleting dynamically allocated fields. */
-	if (tracker->Decrease() == 0) {
-		delete evtsync;
-		delete tracker;
-	}
+	if (shared->tracker.Decrease() == 0)
+		delete shared;
 }
 
-wxEvent *wxCvDrawEvent::Clone(void) const
+wxEvent *HVDEvent::Clone(void) const
 {
-	wxCvDrawEvent *cloneptr = new wxCvDrawEvent(*this);
+	HVDEvent *cloneptr = new HVDEvent(*this);
 	cloneptr->realevt = true;
-	cloneptr->tracker->Increase();
+	cloneptr->shared->tracker.Increase();
 	return cloneptr;
 }
 
-void wxCvDrawEvent::GetFrame(cv::Mat &img) const
+bool HVDEvent::WaitEventHandle(unsigned long msecs)
+{
+	return shared->evtsync.TimedWait(msecs);
+}
+
+void HVDEvent::SetFrame(const cv::Mat &img)
+{
+	frame = img.clone();
+}
+
+void HVDEvent::GetFrame(cv::Mat &img) const
 {
 	img = frame;
 }
 
-bool wxCvDrawEvent::WaitEventHandle(unsigned long msecs)
+void HVDEvent::SetMessage(const char *format, va_list vl)
 {
-	return evtsync->TimedWait(msecs);
+	/* FIXME: Strings over 300 characters long will be truncated. */
+	char buffer[301] = {0};
+	vsnprintf(buffer, sizeof(buffer), format, vl);
+	msg = buffer;
 }
 
-wxDEFINE_EVENT(wxEVT_CV_DRAW, wxCvDrawEvent);
-typedef void (wxEvtHandler::*wxCvDrawEventFunction)(wxCvDrawEvent&);
-#define wxCvDrawEventHandler(func) wxEVENT_HANDLER_CAST(wxCvDrawEventFunction, func)
+const char *HVDEvent::GetMessage(void) const
+{
+	return msg.c_str();
+}
+
+wxDEFINE_EVENT(HVDEVT_CV_DRAW, HVDEvent);
+wxDEFINE_EVENT(HVDEVT_LOG_INFO, HVDEvent);
+wxDEFINE_EVENT(HVDEVT_LOG_WARNING, HVDEvent);
+wxDEFINE_EVENT(HVDEVT_LOG_ERROR, HVDEvent);
+typedef void (wxEvtHandler::*HVDEventFunction)(HVDEvent&);
+#define HVDEventHandler(func) wxEVENT_HANDLER_CAST(HVDEventFunction, func)
 
 HVDFrame::HVDFrame(wxWindow *parent)
 	: HVDFrameBase(parent)
 {
-	this->Connect(wxEVT_CV_DRAW, wxCvDrawEventHandler(HVDFrame::OnCvDraw));
+	this->Connect(HVDEVT_CV_DRAW, HVDEventHandler(HVDFrame::OnCvDraw));
+	this->Connect(HVDEVT_LOG_INFO, HVDEventHandler(HVDFrame::OnLogInfo));
+	this->Connect(HVDEVT_LOG_WARNING, HVDEventHandler(HVDFrame::OnLogWarning));
+	this->Connect(HVDEVT_LOG_ERROR, HVDEventHandler(HVDFrame::OnLogError));
 }
 
 HVDFrame::~HVDFrame(void)
 {
-	this->Disconnect(wxEVT_CV_DRAW, wxCvDrawEventHandler(HVDFrame::OnCvDraw));
+	this->Disconnect(HVDEVT_CV_DRAW, HVDEventHandler(HVDFrame::OnCvDraw));
+	this->Disconnect(HVDEVT_LOG_INFO, HVDEventHandler(HVDFrame::OnLogInfo));
+	this->Disconnect(HVDEVT_LOG_WARNING, HVDEventHandler(HVDFrame::OnLogWarning));
+	this->Disconnect(HVDEVT_LOG_ERROR, HVDEventHandler(HVDFrame::OnLogError));
 }
 
 void HVDFrame::OnQuit(wxCloseEvent &event)
@@ -165,11 +189,26 @@ void HVDFrame::OnToolOpenImage(wxCommandEvent &event)
 	hvdmain_open_image(core_data, fname.ToStdString());
 }
 
-void HVDFrame::OnCvDraw(wxCvDrawEvent &event)
+void HVDFrame::OnCvDraw(HVDEvent &event)
 {
 	cv::Mat frame;
 	event.GetFrame(frame);
 	cvp_video->DrawFrame(frame);
+}
+
+void HVDFrame::OnLogInfo(HVDEvent &event)
+{
+	LogInfo(event.GetMessage());
+}
+
+void HVDFrame::OnLogWarning(HVDEvent &event)
+{
+	LogWarning(event.GetMessage());
+}
+
+void HVDFrame::OnLogError(HVDEvent &event)
+{
+	LogError(event.GetMessage());
 }
 
 void HVDFrame::LogInfo(const char *format, ...)
@@ -245,13 +284,48 @@ wxCvPanel *HVDFrame::GetCvPanel(void)
 
 void HVDFrame::SendCvDrawEvent(cv::Mat &img)
 {
-	wxCvDrawEvent event(wxEVT_CV_DRAW, GetId(), img);
+	HVDEvent event(HVDEVT_CV_DRAW, GetId());
 
 	event.SetEventObject(this);
+	event.SetFrame(img);
 	AddPendingEvent(event);
 
 	/* Wait for event to be processed. */
 	event.WaitEventHandle(1000);
 }
+
+void HVDFrame::SendLogInfoEvent(const char *format, va_list args)
+{
+	HVDEvent event(HVDEVT_LOG_INFO, GetId());
+
+	event.SetEventObject(this);
+	event.SetMessage(format, args);
+	AddPendingEvent(event);
+
+	event.WaitEventHandle(1000);
+}
+
+void HVDFrame::SendLogWarningEvent(const char *format, va_list args)
+{
+	HVDEvent event(HVDEVT_LOG_WARNING, GetId());
+
+	event.SetEventObject(this);
+	event.SetMessage(format, args);
+	AddPendingEvent(event);
+
+	event.WaitEventHandle(1000);
+}
+
+void HVDFrame::SendLogErrorEvent(const char *format, va_list args)
+{
+	HVDEvent event(HVDEVT_LOG_ERROR, GetId());
+
+	event.SetEventObject(this);
+	event.SetMessage(format, args);
+	AddPendingEvent(event);
+
+	event.WaitEventHandle(1000);
+}
+
 
 } /* namespace HVDFrame */

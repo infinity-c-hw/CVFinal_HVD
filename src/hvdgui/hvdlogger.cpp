@@ -48,4 +48,37 @@ void LogError(const char *format, ...)
 	va_end(vl);
 }
 
+void ThreadLogInfo(const char *format, ...)
+{
+	if (hvdf == NULL)
+		return;
+
+	va_list vl;
+	va_start(vl, format);
+	hvdf->SendLogInfoEvent(format, vl);
+	va_end(vl);
+}
+
+void ThreadLogWarning(const char *format, ...)
+{
+	if (hvdf == NULL)
+		return;
+
+	va_list vl;
+	va_start(vl, format);
+	hvdf->SendLogWarningEvent(format, vl);
+	va_end(vl);
+}
+
+void ThreadLogError(const char *format, ...)
+{
+	if (hvdf == NULL)
+		return;
+
+	va_list vl;
+	va_start(vl, format);
+	hvdf->SendLogErrorEvent(format, vl);
+	va_end(vl);
+}
+
 } /* namespace HVDLogger */

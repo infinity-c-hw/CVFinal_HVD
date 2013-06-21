@@ -33,6 +33,26 @@ void LogWarning(const char *format, ...);
  */
 void LogError(const char *format, ...);
 
+/** @brief Write information from outside main thread.
+ *
+ * Becuase the message will eventually lead to GUI change, if you're sending
+ * message from outside main thread, problem might occur.  In such case, use
+ * this variant instead.
+ */
+void ThreadLogInfo(const char *format, ...);
+
+/** @brief Write warning from outside main thread.
+ *
+ * @see ThreadLogInfo(const char *format, ...)
+ */
+void ThreadLogWarning(const char *format, ...);
+
+/** @brief Write error from outside main thread.
+ *
+ * @see ThreadLogInfo(const char *format, ...)
+ */
+void ThreadLogError(const char *format, ...);
+
 } /* namespace HVDLogger */
 
 #endif

@@ -15,7 +15,7 @@
  */
 namespace HVDFrame {
 
-/** @brief A simple instance count tracker for wxCvDrawEvent.
+/** @brief A simple instance count tracker for HVDEvent.
  *
  * It is essentially a mutex lock protected integer data type.
  *
@@ -36,16 +36,19 @@ class InstTracker {
 		int Get(void); /**< Get current counter value. */
 };
 
-/** @brief Drawing event that propagates image frame.
+/** @brief Generic HVD event data propagation class.
+ *
+ * HVD event is used to propagate GUI changes from worker thread into main
+ * thread.
  *
  * FIXME:
  * This function looks like a hack-around somehow.  The reason it becomes so
  * complex is that we need thread-safety, so all immediate event processing
  * methods will not work.  But if we let event queue deal with event
- * processing, the incoming video frame will pour in too fast that main
- * program does not have the ability to digest the events.  So we need some
- * sort of synchronization between event issuer and event dispatcher, thus
- * the evtsync, realevt, and tracker member.
+ * processing, events like incoming video frame will pour in too fast that
+ * main program does not have the ability to digest the events.  So we need
+ * some sort of synchronization between event issuer and event dispatcher,
+ * thus the evtsync, realevt, and tracker member.
  *
  * Basically it work on the assumption that a cloned copy of event object
  * will be queued into event queue.  When the copy in the event queue got
@@ -67,24 +70,90 @@ class InstTracker {
  * counter drops to 0, the destructor is responsible for destroying all
  * dynamically allocated members.
  */
-class wxCvDrawEvent : public wxEvent {
+class HVDEvent : public wxEvent {
 	private:
-		cv::Mat frame; /**< Frame to be propagated. */
+		wxEventType evttype; /**< Event type. */
 		bool realevt; /**< Flag to indicate cloned instance, see class comment. */
-		ICutils::Semaphore *evtsync; /**< Semaphore to synchronize event completion. */
-		InstTracker *tracker; /**< Instance tracker. */
+
+		/** @brief Shared data between cloned HVDEvent instances.
+		 */
+		class HVDEventShared {
+			public:
+				HVDEventShared(void) : evtsync(0, 1) {} /**< Constructor. */
+				~HVDEventShared(void) {} /**< Destructor. */
+
+				ICutils::Semaphore evtsync; /**< Semaphore to synchronize event completion. */
+				InstTracker tracker; /**< Instance tracker. */
+		} *shared;
+
+		/** @brief Frame to be propagated.
+		 *
+		 * Useful in: HVDEVT_CV_DRAW.
+		 */
+		cv::Mat frame;
+
+		/** @brief Log message.
+		 *
+		 * Useful in: HVDEVT_LOG_INFO, HVDEVT_LOG_WARNING, HVDEVT_LOG_ERROR.
+		 */
+		std::string msg;
 
 	public:
-		wxCvDrawEvent(wxEventType eventType, int winid, const cv::Mat &img);
-		~wxCvDrawEvent(void);
+		/** @brief Constructor.
+		 */
+		HVDEvent(wxEventType eventType, int winid);
 
-		void GetFrame(cv::Mat &img) const;
+		/** @brief Destructor.
+		 */
+		~HVDEvent(void);
+
+		/** @brief Implement Clone method.
+		 */
+		virtual wxEvent *Clone(void) const;
+
+		/** @brief Wait for event to be handled.
+		 *
+		 * You can specify a timeout to avoid forever wait, which sometimes
+		 * might lead to deadlock (see class explanation).
+		 *
+		 * @param[in] msecs wait timeout
+		 * @return If event completes, it returns true.  If event wait times out,
+		 * 			it returns false.
+		 */
 		bool WaitEventHandle(unsigned long msecs);
 
-		virtual wxEvent *Clone(void) const;
+		/** @brief Set frame data to be propagated.
+		 *
+		 * Useful in HVDEVT_CV_DRAW.
+		 */
+		void SetFrame(const cv::Mat &img);
+
+		/** @brief Get frame data.
+		 *
+		 * Useful in HVDEVT_CV_DRAW.
+		 */
+		void GetFrame(cv::Mat &img) const;
+
+		/** @brief Set message to be propagated.
+		 *
+		 * FIXME: This function currently only deliver strings less than
+		 * 300 characters long.  Anything beyond that will be truncated.
+		 *
+		 * Useful in: HVDEVT_LOG_INFO, HVDEVT_LOG_WARNING, HVDEVT_LOG_ERROR.
+		 */
+		void SetMessage(const char *format, va_list vl);
+
+		/** @brief Get message.
+		 *
+		 * Useful in: HVDEVT_LOG_INFO, HVDEVT_LOG_WARNING, HVDEVT_LOG_ERROR.
+		 */
+		const char *GetMessage(void) const;
 };
 
-wxDECLARE_EVENT(wxEVT_CV_DRAW, wxCvDrawEvent);
+wxDECLARE_EVENT(HVDEVT_CV_DRAW, HVDEvent);
+wxDECLARE_EVENT(HVDEVT_LOG_INFO, HVDEvent);
+wxDECLARE_EVENT(HVDEVT_LOG_WARNING, HVDEvent);
+wxDECLARE_EVENT(HVDEVT_LOG_ERROR, HVDEvent);
 
 /** @brief Main GUI class.
  */
@@ -124,7 +193,19 @@ class HVDFrame : public HVDUI::HVDFrameBase {
 
 		/** @brief OpenCV draw event handler.
 		 */
-		void OnCvDraw(wxCvDrawEvent &event);
+		void OnCvDraw(HVDEvent &event);
+
+		/** @brief Log info event.
+		 */
+		void OnLogInfo(HVDEvent &event);
+
+		/** @brief Log warning event.
+		 */
+		void OnLogWarning(HVDEvent &event);
+
+		/** @brief Log error event.
+		 */
+		void OnLogError(HVDEvent &event);
 
 	public:
 		/** @brief Constructor.
@@ -179,6 +260,25 @@ class HVDFrame : public HVDUI::HVDFrameBase {
 		 * calling wxCvPanel::DrawFrame() directly.
 		 */
 		void SendCvDrawEvent(cv::Mat &img);
+
+		/** @brief Send log info event.
+		 *
+		 * In multi-threading scenario, these (SendLog*Event) functions should
+		 * be used instead of calling Log* directly.
+		 */
+		void SendLogInfoEvent(const char *format, va_list args);
+
+		/** @brief Send log warning event.
+		 *
+		 * @see SendLogInfoEvent(const char *format, va_list args)
+		 */
+		void SendLogWarningEvent(const char *format, va_list args);
+
+		/** @brief Send log error event.
+		 *
+		 * @see SendLogInfoEvent(const char *format, va_list args)
+		 */
+		void SendLogErrorEvent(const char *format, va_list args);
 
 #if 0
 		void AddRecord();
