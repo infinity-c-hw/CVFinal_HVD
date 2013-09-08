@@ -59,3 +59,8 @@ Notes:
 
 1. It seems like prebuilt OpenCV package does not work well with CMake. You need to build/install OpenCV by yourself and point OpenCV dir to that copy.
 2. When I last tested wxWidgets, static build will cause initialization crash. If you encounter such problem, please try to build with wxWidgets dynamically linked.
+
+Special Thanks
+--------------
+
+A special thanks to the many resources on the Internet. We have incorporated many of their logic into our detection core, but forgot to keep a list.
