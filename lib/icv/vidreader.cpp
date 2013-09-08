@@ -60,9 +60,9 @@ bool VidReader::Open(const int camindex)
 		return false;
 
 	/* Not implemented as of OpenCV 2.4.3.
-	 * Assume a big value here. */
+	 * Assume a reasonable default value here. */
 	//fps = cap.get(CV_CAP_PROP_FPS);
-	fps = 1000;
+	fps = 30;
 	return true;
 }
 
