@@ -19,6 +19,9 @@ namespace ICv {
  * file.  It sets end-of-stream bit to true, and propagate it to downstream
  * threads.  Upon receiving e-o-s bit, downstream threads know that the stream
  * has ended, so they can end themselves as well.
+ *
+ * Because it is intended to be used with DataSync, it does not have built-in
+ * mutex lock.
  */
 class CVShm {
 	private:
